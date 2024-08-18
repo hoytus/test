@@ -1,0 +1,20 @@
+name: Verify Review Requirements
+
+permissions:
+  pull-requests: read
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  verify-ownership-of-changed-files:
+    runs-on: ubuntu-latest
+    name: Verify ownership of changed files
+    steps:
+      - name: Print event data
+        env:
+          EVENT_JSON: ${{ toJson(github.event) }}
+        run: |
+          printf '%s\n' "$EVENT_JSON" > event.json
+          cat event.json
