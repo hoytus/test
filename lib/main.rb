@@ -5,3 +5,5 @@ files.each do |file|
   puts File.read(file)
   puts
 end
+
+puts "complete"
