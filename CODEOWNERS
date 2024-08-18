@@ -1,0 +1,5 @@
+# Assign culture directory to the stakeholders team
+/culture/ @hoytus/stakeholders
+
+# Assign everything else to the engineers team
+* @hoytus/engineers
