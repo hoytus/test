@@ -58,6 +58,8 @@ jobs:
       with:
         github-token: ${{ secrets.REPO_TOKEN }}
         script: |
+          const getTeams = require('.github/lib/get-teams')
+
           const { data: reviews } = await github.rest.pulls.listReviews({
             owner: context.repo.owner,
             repo: context.repo.repo,
@@ -66,7 +68,10 @@ jobs:
           const approvedReviews = reviews.filter(review => review.state === 'APPROVED')
           const approvals = approvedReviews.map(review => review.user.login)
 
-          return { approvals }
+          // Fetch teams for all approving users
+          const approversTeams = await getTeams(context, github, approvals)
+
+          return { approvals, approversTeams }
 
     - name: Check changed files against CODEOWNERS and the result against PR creator and their teams
       uses: actions/github-script@v7
@@ -81,7 +86,14 @@ jobs:
           const parseCodeowners = require('.github/lib/parse-codeowners')
           const { prCreator, prCreatorTeams } = JSON.parse(process.env.PR_CREATOR_AND_TEAMS_JSON)
           const { codeownersContent } = JSON.parse(process.env.CODEOWNERS_JSON)
-          const { approvals } = JSON.parse(process.env.APPROVALS_JSON)
+          const { approvals, approversTeams } = JSON.parse(process.env.APPROVALS_JSON)
+          const patterns = parseCodeowners(codeownersContent)
+
+          console.log('PR Creator:', prCreator)
+          console.log('PR Creator Teams:', prCreatorTeams)
+          console.log('Codeowners Patterns:', patterns)
+          console.log('Approvals:', approvals)
+          console.log('Approvers Teams:', approversTeams)
 
           const { data: changedFiles } = await github.rest.pulls.listFiles({
             owner: context.repo.owner,
@@ -89,19 +101,35 @@ jobs:
             pull_number: context.payload.pull_request.number,
           })
 
-          const patterns = parseCodeowners(codeownersContent)
+          console.log('Changed Files:', changedFiles.map(file => file.filename))
+
           const unauthorizedChanges = []
 
           changedFiles.forEach(file => {
+            console.log('Checking file:', file.filename)
+
             const owners = findOwners(file.filename, patterns)
+            console.log('Owners for file:', file.filename, owners)
+
+            // If there are no owners, consider the file approved
+            if (owners.length === 0) {
+              console.log(`No owners found for file: ${file.filename}. Automatically approved.`)
+              return
+            }
 
             const approved = owners.some(owner => {
+              console.log('Checking owner:', owner)
               if (owner.startsWith('@')) {
-                const team = owner.slice(1)
-                return prCreatorTeams.includes(team) || approvals.includes(team)
+                const teamMatch = prCreatorTeams.includes(owner) || approversTeams.includes(owner)
+                console.log('Is team approved:', owner, teamMatch)
+                return teamMatch
               }
-              return owner === prCreator || approvals.includes(owner)
+              const individualMatch = owner === prCreator || approvals.includes(owner)
+              console.log('Is individual approved:', owner, individualMatch)
+              return individualMatch
             })
+
+            console.log('Is file approved:', file.filename, approved)
 
             if (!approved) {
               unauthorizedChanges.push(file.filename)
@@ -109,5 +137,8 @@ jobs:
           })
 
           if (unauthorizedChanges.length > 0) {
+            console.log('Unauthorized changes found:', unauthorizedChanges)
             core.setFailed(`Unauthorized changes found in the following files: ${unauthorizedChanges.join(', ')}`)
+          } else {
+            console.log('All changes are authorized.')
           }
