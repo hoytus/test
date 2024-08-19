@@ -67,9 +67,9 @@ jobs:
           })
           const approvedReviews = reviews.filter(review => review.state === 'APPROVED')
           const approvals = approvedReviews.map(review => review.user.login)
-
-          // Fetch teams for all approving users
           const approversTeams = await getTeams(context, github, approvals)
+          console.log('Approvals:', approvals)
+          console.log('Approvers Teams:', approversTeams)
 
           return { approvals, approversTeams }
 
