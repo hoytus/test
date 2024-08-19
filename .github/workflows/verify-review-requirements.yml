@@ -11,7 +11,6 @@ on:
 
 jobs:
   verify-ownership-of-changed-files:
-    if: github.event_name == 'pull_request' || (github.event_name == 'pull_request_review' && github.event.review.state == 'approved')
     runs-on: ubuntu-latest
     steps:
     - name: Check out the repository
