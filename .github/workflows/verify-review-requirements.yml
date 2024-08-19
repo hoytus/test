@@ -6,9 +6,12 @@ permissions:
 on:
   pull_request:
     types: [opened, synchronize, reopened]
+  pull_request_review:
+    types: [submitted]
 
 jobs:
   verify-ownership-of-changed-files:
+    if: github.event.review.state == 'approved'
     runs-on: ubuntu-latest
     steps:
     - name: Check out the repository
