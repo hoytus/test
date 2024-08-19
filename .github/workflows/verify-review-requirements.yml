@@ -109,16 +109,17 @@ jobs:
           changedFiles.forEach(file => {
             const owners = findOwners(file.filename, patterns)
 
-            owners.forEach(owner => {
+            const approved = owners.some(owner => {
               if (owner.startsWith('@')) {
                 const team = owner.slice(1)
-                if (!prCreatorTeams.includes(team)) {
-                  unauthorizedChanges.push(file.filename)
-                }
-              } else if (owner !== prCreator) {
-                unauthorizedChanges.push(file.filename)
+                return prCreatorTeams.includes(team) || approvals.includes(team)
               }
+              return owner === prCreator || approvals.includes(owner)
             })
+
+            if (!approved) {
+              unauthorizedChanges.push(file.filename)
+            }
           })
 
           if (unauthorizedChanges.length > 0) {
