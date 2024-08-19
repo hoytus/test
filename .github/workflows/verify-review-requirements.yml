@@ -119,11 +119,21 @@ jobs:
 
             const approved = owners.some(owner => {
               console.log('Checking owner:', owner)
+
+              // Check if the owner is a team
               if (owner.startsWith('@')) {
-                const teamMatch = prCreatorTeams.includes(owner) || approversTeams.includes(owner)
-                console.log('Is team approved:', owner, teamMatch)
-                return teamMatch
+                // If there are approvals, check if any of the approvers' teams match the owner
+                if (approvals.length > 0) {
+                  const teamMatch = approversTeams.includes(owner)
+                  console.log('Is team approved:', owner, teamMatch)
+                  return teamMatch
+                } else {
+                  console.log('No approvals, skipping team check for:', owner)
+                  return false
+                }
               }
+
+              // Check if the owner is the PR creator or if they are in the approvals list
               const individualMatch = owner === prCreator || approvals.includes(owner)
               console.log('Is individual approved:', owner, individualMatch)
               return individualMatch
