@@ -1,4 +1,7 @@
 module.exports = async function getTeams(context, github, userLogins) {
+  if (userLogins.length === 0) {
+    return []
+  }
   const query = `
     query UsersTeamsInOrg($org: String!, $userLogins: [String!]!) {
       organization(login: $org) {
